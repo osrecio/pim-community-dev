@@ -1,0 +1,28 @@
+parameters:
+    pim_enrich.category_tree.list_categories.class: Pim\Component\Enrich\CategoryTree\ListCategories
+    pim_enrich.category_tree.query.get_categories.class: Pim\Bundle\EnrichBundle\Categorytree\Query\Sql\GetCategories
+    pim_enrich.category_tree.query.count_products_in_categories.class: Pim\Bundle\EnrichBundle\CategoryTree\Query\Elasticsearch\CountProductsInCategories
+    pim_enrich.category_tree.normalizer.root_category.class: Pim\Component\Enrich\CategoryTree\Normalizer\RootCategory
+
+services:
+    pim_enrich.category_tree.list_categories:
+        class: '%pim_enrich.category_tree.list_categories.class%'
+        arguments:
+            - '@pim_catalog.repository.category'
+            - '@pim_user.context.user'
+            - '@pim_enrich.category_tree.query.get_categories'
+            - '@pim_enrich.category_tree.query.count_products_in_categories'
+
+    pim_enrich.category_tree.query.get_categories:
+        class: '%pim_enrich.category_tree.query.get_categories.class%'
+        arguments:
+            - '@database_connection'
+
+    pim_enrich.category_tree.query.count_products_in_categories:
+        class: '%pim_enrich.category_tree.query.count_products_in_categories.class%'
+        arguments:
+            - '@akeneo_elasticsearch.client.product'
+            - 'pim_catalog_product'
+
+    pim_enrich.category_tree.normalizer.root_category:
+        class: '%pim_enrich.category_tree.normalizer.root_category.class%'

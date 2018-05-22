@@ -40,6 +40,8 @@ services:
     pim_enrich.controller.category_tree.product:
         class: '%pim_enrich.controller.category_tree.class%'
         arguments:
+            - '@pim_enrich.category_tree.list_categories'
+            - '@pim_enrich.category_tree.normalizer.root_category'
             - '@event_dispatcher'
             - '@pim_user.context.user'
             - '@pim_catalog.saver.category'

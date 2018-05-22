@@ -12,6 +12,9 @@ use Oro\Bundle\SecurityBundle\SecurityFacade;
 use Pim\Bundle\EnrichBundle\Event\CategoryEvents;
 use Pim\Bundle\EnrichBundle\Flash\Message;
 use Pim\Bundle\UserBundle\Context\UserContext;
+use Pim\Component\Enrich\CategoryTree\ListCategories;
+use Pim\Component\Enrich\CategoryTree\ListRootCategoriesParameters;
+use Pim\Component\Enrich\CategoryTree\Normalizer;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -33,6 +36,12 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  */
 class CategoryTreeController extends Controller
 {
+    /** @var ListCategories */
+    protected $listCategories;
+
+    /** @var Normalizer\RootCategory */
+    protected $rootCategoryNormalizer;
+
     /** @var EventDispatcherInterface */
     protected $eventDispatcher;
 
@@ -60,6 +69,8 @@ class CategoryTreeController extends Controller
     /**
      * Constructor
      *
+     * @param ListCategories              $listCategories
+     * @param Normalizer\RootCategory     $rootcategoryNormalizer
      * @param EventDispatcherInterface    $eventDispatcher
      * @param UserContext                 $userContext
      * @param SaverInterface              $categorySaver
@@ -70,6 +81,8 @@ class CategoryTreeController extends Controller
      * @param array                       $rawConfiguration
      */
     public function __construct(
+        ListCategories $listCategories,
+        Normalizer\RootCategory $rootCategoryNormalizer,
         EventDispatcherInterface $eventDispatcher,
         UserContext $userContext,
         SaverInterface $categorySaver,
@@ -79,6 +92,8 @@ class CategoryTreeController extends Controller
         SecurityFacade $securityFacade,
         array $rawConfiguration
     ) {
+        $this->listCategories = $listCategories;
+        $this->rootCategoryNormalizer = $rootCategoryNormalizer;
         $this->eventDispatcher = $eventDispatcher;
         $this->userContext = $userContext;
         $this->categorySaver = $categorySaver;
@@ -94,16 +109,14 @@ class CategoryTreeController extends Controller
     }
 
     /**
-     * List category trees. The select_node_id request parameter
-     * allow to send back the tree where the node belongs with a selected  reef attribute
+     * The select_node_id request parameter
+     * allows to send back the tree where the node belongs with a selected  attribute
      *
      * @param Request $request
      *
      * @throws AccessDeniedException
      *
      * @return array
-     *
-     * @Template
      */
     public function listTreeAction(Request $request)
     {
@@ -111,21 +124,15 @@ class CategoryTreeController extends Controller
             throw new AccessDeniedException();
         }
 
-        $selectNodeId = $request->get('select_node_id', -1);
+        $parameters = new ListRootCategoriesParameters(
+            $request->query->getInt('select_node_id', -1),
+            $request->query->getBoolean('with_items_count', true),
+            $request->query->getBoolean('include_sub', false)
+        );
+        $rootCategories = $this->listCategories->listRootCategories($parameters);
+        $normalizedData = $this->rootCategoryNormalizer->normalizeList($rootCategories);
 
-        try {
-            $selectNode = $this->findCategory($selectNodeId);
-        } catch (NotFoundHttpException $e) {
-            $selectNode = $this->userContext->getUserCategoryTree($this->rawConfiguration['related_entity']);
-        }
-
-        return [
-            'trees'          => $this->categoryRepository->getTrees(),
-            'selectedTreeId' => $selectNode->isRoot() ? $selectNode->getId() : $selectNode->getRoot(),
-            'include_sub'    => (bool) $request->get('include_sub', false),
-            'item_count'     => (bool) $request->get('with_items_count', true),
-            'related_entity' => $this->rawConfiguration['related_entity']
-        ];
+        return new JsonResponse($normalizedData);
     }
 
     /**
