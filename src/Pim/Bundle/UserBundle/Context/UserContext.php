@@ -50,6 +50,9 @@ class UserContext
     /** @var array */
     protected $userLocales;
 
+    /** @var LocaleInterface */
+    protected $currentLocale;
+
     /** @var string */
     protected $defaultLocale;
 
@@ -90,6 +93,10 @@ class UserContext
      */
     public function getCurrentLocale(): LocaleInterface
     {
+        if (null !== $this->currentLocale) {
+            return $this->currentLocale;
+        }
+
         $locale = $this->getRequestLocale();
 
         if (null === $locale) {
@@ -117,6 +124,8 @@ class UserContext
             $this->getCurrentRequest()->getSession()->set('dataLocale', $locale->getCode());
             $this->getCurrentRequest()->getSession()->save();
         }
+
+        $this->currentLocale = $locale;
 
         return $locale;
     }
