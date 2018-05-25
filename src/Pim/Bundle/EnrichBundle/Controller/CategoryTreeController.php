@@ -13,6 +13,7 @@ use Pim\Bundle\EnrichBundle\Event\CategoryEvents;
 use Pim\Bundle\EnrichBundle\Flash\Message;
 use Pim\Bundle\UserBundle\Context\UserContext;
 use Pim\Component\Enrich\CategoryTree\ListCategories;
+use Pim\Component\Enrich\CategoryTree\ListChildrenCategoriesParameters;
 use Pim\Component\Enrich\CategoryTree\ListRootCategoriesParameters;
 use Pim\Component\Enrich\CategoryTree\Normalizer;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
@@ -197,6 +198,13 @@ class CategoryTreeController extends Controller
         if (false === $this->securityFacade->isGranted($this->buildAclName('category_list'))) {
             throw new AccessDeniedException();
         }
+
+        $parameters = new ListChildrenCategoriesParameters(
+            $request->query->getInt('id', -1),
+            $request->query->getInt('select_node_id', -1),
+            $request->query->getBoolean('with_items_count', true),
+            $request->query->getBoolean('include_sub', false)
+        );
 
         try {
             $parent = $this->findCategory($request->get('id'));

@@ -23,15 +23,15 @@ class RootCategory
         $normalizedCategories = [];
 
         foreach ($rootCategories as $rootCategory) {
-            $label = -1 < $rootCategory->getNumberProductsInCategory() ?
-                sprintf('%s (%s)', $rootCategory->getLabel(), $rootCategory->getNumberProductsInCategory()) :
-                $rootCategory->getLabel();
+            $label = -1 < $rootCategory->numberProductsInCategory() ?
+                sprintf('%s (%s)', $rootCategory->label(), $rootCategory->numberProductsInCategory()) :
+                $rootCategory->label();
 
             $normalizedCategories[] = [
-                'id' => $rootCategory->getId(),
-                'code' => $rootCategory->getCode(),
+                'id' => $rootCategory->id(),
+                'code' => $rootCategory->code(),
                 'label' => $label,
-                'selected' => $rootCategory->isSelected(),
+                'selected' => $rootCategory->selected(),
             ];
         }
 

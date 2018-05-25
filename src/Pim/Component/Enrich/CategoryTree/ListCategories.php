@@ -53,36 +53,70 @@ class ListCategories
      */
     public function listRootCategories(ListRootCategoriesParameters $parameters): array
     {
-        $selectedTree = -1 !== $parameters->categoryId() ? $this->categoryRepository->find($parameters->categoryId()) : null;
-        if (null === $selectedTree) {
-            $selectedTree = $this->userContext->getUserProductCategoryTree();
+        $treeToExpand = -1 !== $parameters->treeToExpand() ?
+            $this->categoryRepository->find($parameters->treeToExpand()) : null;
+
+        if (null === $treeToExpand) {
+            $treeToExpand = $this->userContext->getUserProductCategoryTree();
         }
 
-        $translationLocaleCode = $this->userContext->getCurrentLocaleCode();
+        $translationLocale = $this->userContext->getCurrentLocale();
         $user = $this->userContext->getUser();
 
-        $categories = $this->getChildrenCategories->fetchTreesWithChildrenCategories($translationLocaleCode, $user);
+        $categories = $this->getChildrenCategories->fetchTreesWithChildrenCategories($translationLocale, $user);
 
         if ($parameters->countProductsInCategories()) {
-            $categoriesWithCount = $parameters->countByIncludingSubCategories() ?
+            $categories = $parameters->countByIncludingSubCategories() ?
                 $this->countProductInCategories->countByIncludingSubCategories($categories) :
                 $this->countProductInCategories->countWithoutIncludingSubCategories($categories);
         }
 
         $rootCategories = [];
         foreach ($categories as $category) {
-            $categoryWithCount = $categoriesWithCount[$category->getCode()] ?? null;
-            $numberProductsInCategories = null !== $categoryWithCount ? $categoryWithCount->getCount() : -1;
-
             $rootCategories[] = new ReadModel\RootCategory(
-                $category->getId(),
-                $category->getCode(),
-                $category->getLabel(),
-                $numberProductsInCategories,
-                $category->getId() === $selectedTree->getId()
+                $category->id(),
+                $category->code(),
+                $category->label(),
+                $category->numberProductsInCategory(),
+                $category->id() === $treeToExpand->getId()
             );
         }
 
         return $rootCategories;
+    }
+
+    /**
+     * @param ListChildrenCategoriesParameters $parameters
+     *
+     * @return ReadModel\CategoryWithChildren[]
+     */
+    public function listChildrenCategories(ListChildrenCategoriesParameters $parameters): array
+    {
+        $categoryToExpand = -1 !== $parameters->childrenCategoryIdToExpand() ?
+            $this->categoryRepository->find($parameters->childrenCategoryIdToExpand()) : null;
+
+        if (null === $categoryToExpand) {
+            $categoryToExpand = $this->userContext->getUserProductCategoryTree();
+        }
+
+        $categoryToFilterWith = -1 !== $parameters->categoryIdToFilterWith() ?
+            $this->categoryRepository->find($parameters->categoryIdToFilterWith()) : null;
+
+        if (null !== $categoryToFilterWith && !$this->categoryRepository->isAncestor($categoryToExpand, $categoryToFilterWith)) {
+            $categoryToFilterWith = null;
+        }
+
+        $translationLocale = $this->userContext->getCurrentLocale();
+        $user = $this->userContext->getUser();
+
+        $categories = $this->getChildrenCategories->fetchChildrenCategories($translationLocale, $user, $categoryToExpand, $categoryToFilterWith);
+
+        if ($parameters->countProductsInCategories()) {
+            $categories = $parameters->countByIncludingSubCategories() ?
+                $this->countProductInCategories->countByIncludingSubCategories($categories) :
+                $this->countProductInCategories->countWithoutIncludingSubCategories($categories);
+        }
+
+        return $categories;
     }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Pim\Component\Enrich\CategoryTree\Query;
 
+use Akeneo\Channel\Component\Model\LocaleInterface;
+use Akeneo\Tool\Component\Classification\Model\CategoryInterface;
 use Pim\Component\Enrich\CategoryTree\ReadModel\CategoryWithChildren;
 use Pim\Component\User\Model\User;
 
@@ -24,12 +26,12 @@ interface GetCategories
      *      new CategoryWithChildren('master_2', ['master_2_1', 'master_2_1']),
      * ]
      *
-     * @param string $translationLocaleCode
-     * @param User   $user
+     * @param LocaleInterface $translationLocale
+     * @param User            $user
      *
      * @return CategoryWithChildren[]
      */
-    public function fetchTreesWithChildrenCategories(string $translationLocaleCode, User $user): array;
+    public function fetchTreesWithChildrenCategories(LocaleInterface $translationLocale, User $user): array;
 
     /**
      * Fetch all the children categories of a given category,
@@ -40,11 +42,17 @@ interface GetCategories
      *      new CategoryWithChildren('sub_master_2', ['sub_sub_master_2_1', 'sub_sub_master_2_1']),
      * ]
      *
-     * @param string $translationLocaleCode
-     * @param User   $user
-     * @param string $categoryCode
+     * @param LocaleInterface   $translationLocaleCode
+     * @param User              $user
+     * @param CategoryInterface $parentCategoryToExpand
+     * @param CategoryInterface $childCategoryToExpand
      *
      * @return CategoryWithChildren[]
      */
-    public function fetchChildrenCategories(string $translationLocaleCode, User $user, string $categoryCode): array;
+    public function fetchChildrenCategories(
+        LocaleInterface $translationLocaleCode,
+        User $user,
+        CategoryInterface $parentCategoryToExpand,
+        CategoryInterface $childCategoryToExpand
+    ): array;
 }

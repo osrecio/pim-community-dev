@@ -27,11 +27,11 @@ class RootCategory
     private $selected;
 
     /**
-     * @param integer $id
-     * @param string  $code
-     * @param string  $label
-     * @param integer $numberProductsInCategory
-     * @param bool    $selected
+     * @param int    $id
+     * @param string $code
+     * @param string $label
+     * @param int    $numberProductsInCategory
+     * @param bool   $selected
      */
     public function __construct(
         int $id,
@@ -50,7 +50,7 @@ class RootCategory
     /**
      * @return int
      */
-    public function getId(): int
+    public function id(): int
     {
         return $this->id;
     }
@@ -58,7 +58,7 @@ class RootCategory
     /**
      * @return string
      */
-    public function getCode(): string
+    public function code(): string
     {
         return $this->code;
     }
@@ -66,7 +66,7 @@ class RootCategory
     /**
      * @return string
      */
-    public function getLabel(): string
+    public function label(): string
     {
         return $this->label;
     }
@@ -74,7 +74,7 @@ class RootCategory
     /**
      * @return int
      */
-    public function getNumberProductsInCategory(): int
+    public function numberProductsInCategory(): int
     {
         return $this->numberProductsInCategory;
     }
@@ -82,7 +82,7 @@ class RootCategory
     /**
      * @return bool
      */
-    public function isSelected(): bool
+    public function selected(): bool
     {
         return $this->selected;
     }

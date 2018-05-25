@@ -12,7 +12,7 @@ namespace Pim\Component\Enrich\CategoryTree;
 class ListRootCategoriesParameters
 {
     /** @var int */
-    private $categoryId;
+    private $treeToExpand;
 
     /** @var bool */
     private $countProductsInCategories;
@@ -21,13 +21,13 @@ class ListRootCategoriesParameters
     private $countByIncludingSubCategories;
 
     /**
-     * @param int  $categoryId
+     * @param int  $treeToExpand
      * @param bool $countProductsInCategories
      * @param bool $countByIncludingSubCategories
      */
-    public function __construct(int $categoryId, bool $countProductsInCategories, bool $countByIncludingSubCategories)
+    public function __construct(int $treeToExpand, bool $countProductsInCategories, bool $countByIncludingSubCategories)
     {
-        $this->categoryId = $categoryId;
+        $this->treeToExpand = $treeToExpand;
         $this->countProductsInCategories = $countProductsInCategories;
         $this->countByIncludingSubCategories = $countByIncludingSubCategories;
     }
@@ -35,9 +35,9 @@ class ListRootCategoriesParameters
     /**
      * @return int
      */
-    public function categoryId(): int
+    public function treeToExpand(): int
     {
-        return $this->categoryId;
+        return $this->treeToExpand;
     }
 
     /**

@@ -6,7 +6,7 @@ namespace Pim\Bundle\EnrichBundle\CategoryTree\Query\Elasticsearch;
 
 use Akeneo\Tool\Bundle\ElasticsearchBundle\Client;
 use Pim\Component\Enrich\CategoryTree\Query\CountProductsInCategories as BaseCountProductInCategories;
-use Pim\Component\Enrich\CategoryTree\ReadModel\CategoryWithCount;
+use Pim\Component\Enrich\CategoryTree\ReadModel\CategoryWithChildren;
 
 /**
  * @author    Alexandre Hocquard <alexandre.hocquard@akeneo.com>
@@ -36,10 +36,14 @@ class CountProductsInCategories implements BaseCountProductInCategories
      */
     public function countByIncludingSubCategories(array $categories): array
     {
+        if (empty($categories)) {
+            return [];
+        }
+
         $body = [];
         foreach ($categories as $category) {
-            $categoryCodes = $category->getChildrenCategoryCodes();
-            $categoryCodes[] = $category->getCode();
+            $categoryCodes = $category->childrenCategoryCodes();
+            $categoryCodes[] = $category->code();
             $body[] = [];
             $body[] = [
                 'size' => 0,
@@ -54,16 +58,20 @@ class CountProductsInCategories implements BaseCountProductInCategories
                 ]
             ];
         }
-        $categoriesWithCount = [];
+
         $rows = $this->client->msearch($this->indexType, $body);
 
+        $categoriesWithCount = [];
         foreach ($categories as $index => $category) {
-            $categoriesWithCount[$category->getCode()] = new CategoryWithCount(
-                $category->getCode(),
-                $rows['responses'][$index]['hits']['total'] ?? 0
+            $childrenCategoriesWithCount = !empty($category->childrenCategoriesToExpand()) ?
+                $this->countByIncludingSubCategories($category->childrenCategoriesToExpand()) : [];
+
+            $categoriesWithCount[] = CategoryWithChildren::fromCategoryWithCount(
+                $category,
+                $childrenCategoriesWithCount,
+                $rows['responses'][$index]['hits']['total'] ?? -1
             );
         }
-
 
         return $categoriesWithCount;
     }
@@ -82,7 +90,7 @@ class CountProductsInCategories implements BaseCountProductInCategories
                     'constant_score' => [
                         'filter' => [
                             'terms' => [
-                                'categories' => [$category->getCode()]
+                                'categories' => [$category->code()]
                             ]
                         ]
                     ]
@@ -91,6 +99,18 @@ class CountProductsInCategories implements BaseCountProductInCategories
         }
         $rows = $this->client->msearch($this->indexType, $body);
 
-        return $rows;
+        $categoriesWithCount = [];
+        foreach ($categories as $index => $category) {
+            $childrenCategoriesWithCount = !empty($category->childrenCategoriesToExpand()) ?
+                $this->countWithoutIncludingSubCategories($category->childrenCategoriesToExpand()) : [];
+
+            $categoriesWithCount[] = CategoryWithChildren::fromCategoryWithCount(
+                $category,
+                $childrenCategoriesWithCount,
+                $rows['responses'][$index]['hits']['total'] ?? -1
+            );
+        }
+
+        return $categoriesWithCount;
     }
 }
