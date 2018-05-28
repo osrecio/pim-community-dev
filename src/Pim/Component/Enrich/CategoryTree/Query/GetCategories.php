@@ -26,12 +26,12 @@ interface GetCategories
      *      new CategoryWithChildren('master_2', ['master_2_1', 'master_2_1']),
      * ]
      *
-     * @param LocaleInterface $translationLocale
+     * @param LocaleInterface $translationTranslationLocale
      * @param User            $user
      *
      * @return CategoryWithChildren[]
      */
-    public function fetchTreesWithChildrenCategories(LocaleInterface $translationLocale, User $user): array;
+    public function fetchTreesWithChildrenCategories(LocaleInterface $translationTranslationLocale, User $user): array;
 
     /**
      * Fetch all the children categories of a given category,
@@ -42,10 +42,10 @@ interface GetCategories
      *      new CategoryWithChildren('sub_master_2', ['sub_sub_master_2_1', 'sub_sub_master_2_1']),
      * ]
      *
-     * @param LocaleInterface   $translationLocaleCode
-     * @param User              $user
-     * @param CategoryInterface $parentCategoryToExpand
-     * @param CategoryInterface $childCategoryToExpand
+     * @param LocaleInterface        $translationLocaleCode
+     * @param User                   $user
+     * @param CategoryInterface      $parentCategoryToExpand
+     * @param null|CategoryInterface $categoryToFilterWith
      *
      * @return CategoryWithChildren[]
      */
@@ -53,6 +53,6 @@ interface GetCategories
         LocaleInterface $translationLocaleCode,
         User $user,
         CategoryInterface $parentCategoryToExpand,
-        CategoryInterface $childCategoryToExpand
+        ?CategoryInterface $categoryToFilterWith
     ): array;
 }

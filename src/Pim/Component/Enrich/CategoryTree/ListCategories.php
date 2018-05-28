@@ -109,7 +109,12 @@ class ListCategories
         $translationLocale = $this->userContext->getCurrentLocale();
         $user = $this->userContext->getUser();
 
-        $categories = $this->getChildrenCategories->fetchChildrenCategories($translationLocale, $user, $categoryToExpand, $categoryToFilterWith);
+        $categories = $this->getChildrenCategories->fetchChildrenCategories(
+            $translationLocale,
+            $user,
+            $categoryToExpand,
+            $categoryToFilterWith
+        );
 
         if ($parameters->countProductsInCategories()) {
             $categories = $parameters->countByIncludingSubCategories() ?

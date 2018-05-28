@@ -30,7 +30,7 @@ class CategoryWithChildren
             $normalizedCategories[] = [
                 'attr' => [
                     'data-code' => $category->code(),
-                    'id' => $category->id(),
+                    'id' => 'node_' . $category->id(),
                 ],
                 'state' => $category->selected(),
 

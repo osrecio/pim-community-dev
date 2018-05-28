@@ -199,12 +199,16 @@ class CategoryTreeController extends Controller
             throw new AccessDeniedException();
         }
 
-        $parameters = new ListChildrenCategoriesParameters(
-            $request->query->getInt('id', -1),
-            $request->query->getInt('select_node_id', -1),
-            $request->query->getBoolean('with_items_count', true),
-            $request->query->getBoolean('include_sub', false)
-        );
+        //if (false === $request->query->getBoolean('include_parent', false)) {
+        //    $parameters = new ListChildrenCategoriesParameters(
+        //        $request->query->getInt('id', -1),
+        //        $request->query->getInt('select_node_id', -1),
+        //        $request->query->getBoolean('with_items_count', true),
+        //        $request->query->getBoolean('include_sub', false)
+        //    );
+        //
+        //    return $this->listCategories->listChildrenCategories($parameters);
+        //}
 
         try {
             $parent = $this->findCategory($request->get('id'));
@@ -233,7 +237,7 @@ class CategoryTreeController extends Controller
         }
 
         $withItemsCount = (bool) $request->get('with_items_count', false);
-        $includeParent = (bool) $request->get('include_parent', false);
+        $includeParent = $request->query->getBoolean('include_parent', false);
         $includeSub = (bool) $request->get('include_sub', false);
 
         return $this->render(
