@@ -102,7 +102,8 @@ class ListCategories
         $categoryToFilterWith = -1 !== $parameters->categoryIdToFilterWith() ?
             $this->categoryRepository->find($parameters->categoryIdToFilterWith()) : null;
 
-        if (null !== $categoryToFilterWith && !$this->categoryRepository->isAncestor($categoryToExpand, $categoryToFilterWith)) {
+        if (null !== $categoryToFilterWith
+            && !$this->categoryRepository->isAncestor($categoryToExpand, $categoryToFilterWith)) {
             $categoryToFilterWith = null;
         }
 

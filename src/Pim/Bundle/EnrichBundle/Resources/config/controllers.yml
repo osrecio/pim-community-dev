@@ -42,6 +42,7 @@ services:
         arguments:
             - '@pim_enrich.category_tree.list_categories'
             - '@pim_enrich.category_tree.normalizer.root_category'
+            - '@pim_enrich.category_tree.normalizer.category_with_children'
             - '@event_dispatcher'
             - '@pim_user.context.user'
             - '@pim_catalog.saver.category'

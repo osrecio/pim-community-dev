@@ -3,6 +3,7 @@ parameters:
     pim_enrich.category_tree.query.get_categories.class: Pim\Bundle\EnrichBundle\Categorytree\Query\Sql\GetCategories
     pim_enrich.category_tree.query.count_products_in_categories.class: Pim\Bundle\EnrichBundle\CategoryTree\Query\Elasticsearch\CountProductsInCategories
     pim_enrich.category_tree.normalizer.root_category.class: Pim\Component\Enrich\CategoryTree\Normalizer\RootCategory
+    pim_enrich.category_tree.normalizer.category_with_children.class: Pim\Component\Enrich\CategoryTree\Normalizer\CategoryWithChildren
 
 services:
     pim_enrich.category_tree.list_categories:
@@ -26,3 +27,6 @@ services:
 
     pim_enrich.category_tree.normalizer.root_category:
         class: '%pim_enrich.category_tree.normalizer.root_category.class%'
+
+    pim_enrich.category_tree.normalizer.category_with_children:
+        class: '%pim_enrich.category_tree.normalizer.category_with_children.class%'

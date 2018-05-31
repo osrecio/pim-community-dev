@@ -21,11 +21,6 @@ interface GetCategories
     /**
      * Fetch all the trees with all the children categories of each tree.
      *
-     * Example : [
-     *      new CategoryWithChildren('master_1', ['master_1_1', 'master_1_2']),
-     *      new CategoryWithChildren('master_2', ['master_2_1', 'master_2_1']),
-     * ]
-     *
      * @param LocaleInterface $translationTranslationLocale
      * @param User            $user
      *

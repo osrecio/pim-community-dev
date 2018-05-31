@@ -23,6 +23,9 @@ class CategoryWithChildren
     /** @var string */
     private $label;
 
+    /** @var bool */
+    private $isUsedAsFilter;
+
     /** @var int */
     private $numberProductsInCategory;
 
@@ -36,6 +39,7 @@ class CategoryWithChildren
      * @param int                    $id
      * @param string                 $code
      * @param string                 $label
+     * @param bool                   $isUsedAsFilter
      * @param int                    $numberProductsInCategory
      * @param string[]               $childrenCategoryCodes
      * @param CategoryWithChildren[] $childrenCategoriesToExpand
@@ -44,6 +48,7 @@ class CategoryWithChildren
         int $id,
         string $code,
         string $label,
+        bool $isUsedAsFilter,
         int $numberProductsInCategory,
         array $childrenCategoryCodes,
         array $childrenCategoriesToExpand
@@ -51,6 +56,7 @@ class CategoryWithChildren
         $this->id = $id;
         $this->code = $code;
         $this->label = $label;
+        $this->isUsedAsFilter = $isUsedAsFilter;
         $this->numberProductsInCategory = $numberProductsInCategory;
         $this->childrenCategoryCodes = $childrenCategoryCodes;
         $this->childrenCategoriesToExpand = $childrenCategoriesToExpand;
@@ -60,6 +66,7 @@ class CategoryWithChildren
      * @param int    $id
      * @param string $code
      * @param string $label
+     * @param bool   $toExpand
      * @param array  $childrenCategoryCodes
      * @param array  $childrenCategoriesToExpand
      *
@@ -69,10 +76,11 @@ class CategoryWithChildren
         int $id,
         string $code,
         string $label,
+        bool $toExpand,
         array $childrenCategoryCodes,
         array $childrenCategoriesToExpand
     ): self {
-        return new self($id, $code, $label, -1, $childrenCategoryCodes, $childrenCategoriesToExpand);
+        return new self($id, $code, $label, $toExpand, -1, $childrenCategoryCodes, $childrenCategoriesToExpand);
     }
 
     /**
@@ -91,6 +99,7 @@ class CategoryWithChildren
             $category->id(),
             $category->code(),
             $category->label(),
+            $category->isUsedAsFilter(),
             $numberProductsInCategory,
             $category->childrenCategoryCodes(),
             $childrenCategories
@@ -119,6 +128,30 @@ class CategoryWithChildren
     public function label(): string
     {
         return $this->label;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isUsedAsFilter(): bool
+    {
+        return $this->isUsedAsFilter;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isLeaf(): bool
+    {
+        return empty($this->childrenCategoryCodes);
+    }
+
+    /**
+     * @return bool
+     */
+    public function isExpanded(): bool
+    {
+        return !empty($this->childrenCategoriesToExpand);
     }
 
     /**

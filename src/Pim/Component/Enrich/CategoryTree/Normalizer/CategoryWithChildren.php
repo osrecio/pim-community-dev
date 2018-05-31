@@ -23,22 +23,42 @@ class CategoryWithChildren
         $normalizedCategories = [];
 
         foreach ($categories as $category) {
-            $label = -1 < $categories->numberProductsInCategory() ?
+            $label = -1 < $category->numberProductsInCategory() ?
                 sprintf('%s (%s)', $category->label(), $category->numberProductsInCategory()) :
-                $categories->label();
+                $category->label();
 
             $normalizedCategories[] = [
                 'attr' => [
-                    'data-code' => $category->code(),
                     'id' => 'node_' . $category->id(),
+                    'data-code' => $category->code(),
                 ],
-                'state' => $category->selected(),
-
-                'label' => $label,
-                'selected' => $category->selected(),
+                'data' => $label,
+                'state' => $this->state($category),
+                'children' => $this->normalizeList($category->childrenCategoriesToExpand()),
             ];
         }
 
         return $normalizedCategories;
+    }
+
+    /**
+     * This dirty css stuff should be done on frontend side.
+     *
+     * @param ReadModel\CategoryWithChildren $category
+     *
+     * @return string
+     */
+    private function state(ReadModel\CategoryWithChildren $category): string
+    {
+        $state = $category->isLeaf() ? 'leaf' : 'closed';
+        if ($category->isExpanded()) {
+            $state = 'open';
+        }
+
+        if ($category->isUsedAsFilter()) {
+            $state .= ' toselect jstree-checked';
+        }
+
+        return $state;
     }
 }

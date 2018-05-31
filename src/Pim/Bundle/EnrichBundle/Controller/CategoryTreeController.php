@@ -37,11 +37,23 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
  */
 class CategoryTreeController extends Controller
 {
+    /** @staticvar string */
+    const CONTEXT_MANAGE = 'manage';
+
+    /** @staticvar string */
+    const CONTEXT_VIEW = 'view';
+
+    /** @staticvar string */
+    const CONTEXT_ASSOCIATE = 'associate';
+
     /** @var ListCategories */
     protected $listCategories;
 
     /** @var Normalizer\RootCategory */
     protected $rootCategoryNormalizer;
+
+    /** @var Normalizer\CategoryWithChildren */
+    protected $categoryWithChildrenNormalizer;
 
     /** @var EventDispatcherInterface */
     protected $eventDispatcher;
@@ -70,20 +82,22 @@ class CategoryTreeController extends Controller
     /**
      * Constructor
      *
-     * @param ListCategories              $listCategories
-     * @param Normalizer\RootCategory     $rootcategoryNormalizer
-     * @param EventDispatcherInterface    $eventDispatcher
-     * @param UserContext                 $userContext
-     * @param SaverInterface              $categorySaver
-     * @param RemoverInterface            $categoryRemover
-     * @param SimpleFactoryInterface      $categoryFactory
-     * @param CategoryRepositoryInterface $categoryRepository
-     * @param SecurityFacade              $securityFacade
-     * @param array                       $rawConfiguration
+     * @param ListCategories                  $listCategories
+     * @param Normalizer\RootCategory         $rootcategoryNormalizer
+     * @param Normalizer\CategoryWithChildren $categoryWithChildrenNormalizer
+     * @param EventDispatcherInterface        $eventDispatcher
+     * @param UserContext                     $userContext
+     * @param SaverInterface                  $categorySaver
+     * @param RemoverInterface                $categoryRemover
+     * @param SimpleFactoryInterface          $categoryFactory
+     * @param CategoryRepositoryInterface     $categoryRepository
+     * @param SecurityFacade                  $securityFacade
+     * @param array                           $rawConfiguration
      */
     public function __construct(
         ListCategories $listCategories,
         Normalizer\RootCategory $rootCategoryNormalizer,
+        Normalizer\CategoryWithChildren $categoryWithChildrenNormalizer,
         EventDispatcherInterface $eventDispatcher,
         UserContext $userContext,
         SaverInterface $categorySaver,
@@ -95,6 +109,7 @@ class CategoryTreeController extends Controller
     ) {
         $this->listCategories = $listCategories;
         $this->rootCategoryNormalizer = $rootCategoryNormalizer;
+        $this->categoryWithChildrenNormalizer = $categoryWithChildrenNormalizer;
         $this->eventDispatcher = $eventDispatcher;
         $this->userContext = $userContext;
         $this->categorySaver = $categorySaver;
@@ -189,8 +204,6 @@ class CategoryTreeController extends Controller
      *
      * @throws AccessDeniedException
      *
-     * @Template
-     *
      * @return Response
      */
     public function childrenAction(Request $request)
@@ -198,60 +211,79 @@ class CategoryTreeController extends Controller
         if (false === $this->securityFacade->isGranted($this->buildAclName('category_list'))) {
             throw new AccessDeniedException();
         }
+        $context = $request->query->get('context');
 
-        //if (false === $request->query->getBoolean('include_parent', false)) {
-        //    $parameters = new ListChildrenCategoriesParameters(
-        //        $request->query->getInt('id', -1),
-        //        $request->query->getInt('select_node_id', -1),
-        //        $request->query->getBoolean('with_items_count', true),
-        //        $request->query->getBoolean('include_sub', false)
-        //    );
-        //
-        //    return $this->listCategories->listChildrenCategories($parameters);
+        if (self::CONTEXT_VIEW === $context || self::CONTEXT_MANAGE === $context) {
+            $parameters = new ListChildrenCategoriesParameters(
+                $request->query->getInt('id', -1),
+                $request->query->getInt('select_node_id', -1),
+                $request->query->getBoolean('with_items_count', true),
+                $request->query->getBoolean('include_sub', false)
+            );
+
+            $categories = $this->listCategories->listChildrenCategories($parameters);
+            $normalizedData = $this->categoryWithChildrenNormalizer->normalizeList($categories);
+
+            return new JsonResponse($normalizedData);
+        }
+
+        // TODO: do a query for that
+        if (self::CONTEXT_MANAGE === $context) {
+            return new JsonResponse([]);
+        }
+
+        // TODO: do a query for that
+        if (self::CONTEXT_ASSOCIATE === $context && true === $request->query->getBoolean('include_parent')) {
+            return new JsonResponse([]);
+        }
+
+        // TODO: do another query for that
+        if (self::CONTEXT_ASSOCIATE === $context && false === $request->query->getBoolean('include_parent')) {
+            return new JsonResponse([]);
+        }
+
+        //try {
+        //    $parent = $this->findCategory($request->get('id'));
+        //} catch (\Exception $e) {
+        //    $parent = $this->userContext->getUserProductCategoryTree();
         //}
-
-        try {
-            $parent = $this->findCategory($request->get('id'));
-        } catch (\Exception $e) {
-            $parent = $this->userContext->getUserProductCategoryTree();
-        }
-
-        $selectNodeId = $request->get('select_node_id', -1);
-
-        try {
-            $selectNode = $this->findCategory($selectNodeId);
-
-            if (!$this->categoryRepository->isAncestor($parent, $selectNode)) {
-                $selectNode = null;
-            }
-        } catch (NotFoundHttpException $e) {
-            $selectNode = null;
-        }
-
-        $categories = $this->getChildrenCategories($request, $selectNode, $parent);
-
-        if (null === $selectNode) {
-            $view = 'PimEnrichBundle:CategoryTree:children.json.twig';
-        } else {
-            $view = 'PimEnrichBundle:CategoryTree:children-tree.json.twig';
-        }
-
-        $withItemsCount = (bool) $request->get('with_items_count', false);
-        $includeParent = $request->query->getBoolean('include_parent', false);
-        $includeSub = (bool) $request->get('include_sub', false);
-
-        return $this->render(
-            $view,
-            [
-                'categories'     => $categories,
-                'parent'         => ($includeParent) ? $parent : null,
-                'include_sub'    => $includeSub,
-                'item_count'     => $withItemsCount,
-                'select_node'    => $selectNode,
-                'related_entity' => $this->rawConfiguration['related_entity']
-            ],
-            new JsonResponse()
-        );
+        //
+        //$selectNodeId = $request->get('select_node_id', -1);
+        //
+        //try {
+        //    $selectNode = $this->findCategory($selectNodeId);
+        //
+        //    if (!$this->categoryRepository->isAncestor($parent, $selectNode)) {
+        //        $selectNode = null;
+        //    }
+        //} catch (NotFoundHttpException $e) {
+        //    $selectNode = null;
+        //}
+        //
+        //$categories = $this->getChildrenCategories($request, $selectNode, $parent);
+        //
+        //if (null === $selectNode) {
+        //    $view = 'PimEnrichBundle:CategoryTree:children.json.twig';
+        //} else {
+        //    $view = 'PimEnrichBundle:CategoryTree:children-tree.json.twig';
+        //}
+        //
+        //$withItemsCount = (bool) $request->get('with_items_count', false);
+        //$includeParent = $request->query->getBoolean('include_parent', false);
+        //$includeSub = (bool) $request->get('include_sub', false);
+        //
+        //return $this->render(
+        //    $view,
+        //    [
+        //        'categories'     => $categories,
+        //        'parent'         => ($includeParent) ? $parent : null,
+        //        'include_sub'    => $includeSub,
+        //        'item_count'     => $withItemsCount,
+        //        'select_node'    => $selectNode,
+        //        'related_entity' => $this->rawConfiguration['related_entity']
+        //    ],
+        //    new JsonResponse()
+        //);
     }
 
     /**

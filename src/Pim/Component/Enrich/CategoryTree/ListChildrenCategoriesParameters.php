@@ -24,18 +24,18 @@ class ListChildrenCategoriesParameters
     private $countByIncludingSubCategories;
 
     /**
-     * @param int  $childrenCategoryIdToDisplay
+     * @param int  $childrenCategoryIdToExpand
      * @param int  $categoryIdToFilterWith
      * @param bool $countProductsInCategories
      * @param bool $countByIncludingSubCategories
      */
     public function __construct(
-        int $childrenCategoryIdToDisplay,
+        int $childrenCategoryIdToExpand,
         int $categoryIdToFilterWith,
         bool $countProductsInCategories,
         bool $countByIncludingSubCategories
     ) {
-        $this->childrenCategoryIdToExpand = $childrenCategoryIdToDisplay;
+        $this->childrenCategoryIdToExpand = $childrenCategoryIdToExpand;
         $this->categoryIdToFilterWith = $categoryIdToFilterWith;
         $this->countProductsInCategories = $countProductsInCategories;
         $this->countByIncludingSubCategories = $countByIncludingSubCategories;

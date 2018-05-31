@@ -59,6 +59,7 @@ SQL;
                 (int) $row['root_id'],
                 $row['root_code'],
                 $row['label'],
+                false,
                 $childrenCategories,
                 []
             );
@@ -80,11 +81,21 @@ SQL;
             $this->fetchCategoriesBetween($categoryToExpand, $categoryToFilterWith) : [$categoryToExpand->getCode()];
 
 
-        return $this->fetchChildrenCategoriesFrom($categoriesInPath, $translationLocale);
+        return $this->fetchChildrenCategoriesFrom($categoriesInPath, $translationLocale, $categoryToFilterWith);
     }
 
     /**
      * Returns all category codes between the category to expand (parent) and the category to filter with (subchild).
+     * Example:
+     *
+     *          A
+     *         / \
+     *        B   C
+     *       /     \
+     *      D      E
+     *
+     * If category to expand is A and category to filter is D, it returns [A, B, D]
+     *
      *
      * @param CategoryInterface $categoryToExpand
      * @param CategoryInterface $categoryToFilterWith
@@ -118,13 +129,17 @@ SQL;
     }
 
     /**
-     * @param string[]        $categoriesInPath
-     * @param LocaleInterface $translationLocale
+     * @param string[]          $categoriesInPath
+     * @param LocaleInterface   $translationLocale
+     * @param CategoryInterface $categoryToFilterWith
      *
      * @return CategoryWithChildren[]
      */
-    private function fetchChildrenCategoriesFrom(array $categoriesInPath, LocaleInterface $translationLocale): array
-    {
+    private function fetchChildrenCategoriesFrom(
+        array $categoriesInPath,
+        LocaleInterface $translationLocale,
+        ?CategoryInterface $categoryToFilterWith
+    ): array {
         $parentCategoryCode = array_shift($categoriesInPath);
         $subchildCategoryCode = $categoriesInPath[0] ?? null;
 
@@ -134,10 +149,10 @@ SQL;
                 SELECT child.id as child_id, child.code as child_code,  subchild.code as subchild_code
                 FROM pim_catalog_category parent
                 JOIN pim_catalog_category child on child.parent_id = parent.id
-                JOIN pim_catalog_category subchild on subchild.lft BETWEEN child.lft AND child.rgt AND subchild.root = child.root
+                LEFT JOIN pim_catalog_category subchild on subchild.lft > child.lft AND subchild.rgt < child.rgt AND subchild.root = child.root
                 WHERE parent.code = :parent_category
             ) as c
-            LEFT JOIN pim_catalog_category_translation ct ON ct.foreign_key = c.child_code AND ct.locale = :locale
+            LEFT JOIN pim_catalog_category_translation ct ON ct.foreign_key = c.child_id AND ct.locale = :locale
             GROUP BY c.child_id
 SQL;
 
@@ -151,15 +166,18 @@ SQL;
 
         $categoryWithChildren = [];
         foreach ($rows as $row) {
-            $childrenCategoryCodes = explode(',', $row['children']);
+            $childrenCategoryCodes = null !== $row['children'] ? explode(',', $row['children']) : [];
 
             $childrenCategoriesToExpand = null !== $subchildCategoryCode && $subchildCategoryCode === $row['child_code'] ?
-                    $this->fetchChildrenCategoriesFrom($categoriesInPath, $translationLocale): [];
+                    $this->fetchChildrenCategoriesFrom($categoriesInPath, $translationLocale, $categoryToFilterWith): [];
+
+            $isUsedAsFilter = null !== $categoryToFilterWith ? $categoryToFilterWith->getCode() === $row['child_code'] : false;
 
             $categoryWithChildren[] = CategoryWithChildren::withoutCount(
                 (int) $row['child_id'],
                 $row['child_code'],
                 $row['label'],
+                $isUsedAsFilter,
                 $childrenCategoryCodes,
                 $childrenCategoriesToExpand
             );
