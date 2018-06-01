@@ -4,6 +4,7 @@ namespace Pim\Bundle\CatalogVolumeMonitoringBundle\tests\Integration\Persistence
 
 use Akeneo\Test\Integration\TestCase;
 use PHPUnit\Framework\Assert;
+use Pim\Bundle\UserBundle\Entity\UserInterface;
 use Pim\Component\Catalog\Model\AttributeInterface;
 use Pim\Component\Catalog\Model\AttributeOptionInterface;
 use Pim\Component\Catalog\Model\CategoryInterface;
@@ -143,6 +144,62 @@ class QueryTestCase extends TestCase
     }
 
     /**
+     * @param int $numberOfSubCategory
+     * @return CategoryInterface
+     */
+    protected function createCategoryWithSubCategories(int $numberOfSubCategory) : CategoryInterface
+    {
+        $rootCategory = $this->createCategory([
+            'code' => 'new_category_' . rand()
+        ]);
+        $this->get('validator')->validate($rootCategory);
+        $this->get('pim_catalog.saver.category')->save($rootCategory);
+
+        $i = 0;
+        while ($i < $numberOfSubCategory) {
+            $subCategory = $this->createCategory([
+                'code' => 'new_category_' . rand(),
+                'parent' => $rootCategory->getCode()
+            ]);
+            $i++;
+            $this->get('validator')->validate($subCategory);
+            $this->get('pim_catalog.saver.category')->save($subCategory);
+        }
+
+        return $rootCategory;
+    }
+
+
+    /**
+     * @param int $numberOfLevels
+     * @return CategoryInterface
+     */
+    protected function createCategoryWithLevel(int $numberOfLevels) : CategoryInterface
+    {
+        $rootCategory = $this->createCategory([
+            'code' => 'new_category_' . rand()
+        ]);
+        $this->get('validator')->validate($rootCategory);
+        $this->get('pim_catalog.saver.category')->save($rootCategory);
+        $previousLevelCode = $rootCategory->getCode();
+
+        $i = 0;
+        while ($i < $numberOfLevels) {
+            $subCategory = $this->createCategory([
+                'code' => 'new_category_' . rand(),
+                'parent' => $previousLevelCode
+            ]);
+            $i++;
+            $this->get('validator')->validate($subCategory);
+            $this->get('pim_catalog.saver.category')->save($subCategory);
+            $previousLevelCode = $subCategory->getCode();
+        }
+
+        return $rootCategory;
+    }
+
+
+    /**
      * @param array $data
      *
      * @return AttributeOptionInterface
@@ -188,6 +245,21 @@ class QueryTestCase extends TestCase
         $this->get('pim_catalog.saver.family_variant')->save($family);
 
         return $family;
+    }
+
+    /**
+     * @param array $data
+     * @return UserInterface
+     */
+    protected function createUser(array $data = []) : UserInterface
+    {
+        $user = $this->get('pim_user.factory.user')->create();
+        $this->get('pim_user.updater.user')->update($user, $data, []);
+        $validation = $this->get('validator')->validate($user);
+        Assert::assertEquals(0, $validation->count());
+        $this->get('pim_user.saver.user')->save($user);
+
+        return $user;
     }
 
 
