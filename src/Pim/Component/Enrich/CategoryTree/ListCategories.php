@@ -53,11 +53,11 @@ class ListCategories
      */
     public function listRootCategories(ListRootCategoriesParameters $parameters): array
     {
-        $treeToExpand = -1 !== $parameters->treeToExpand() ?
+        $selectNode = -1 !== $parameters->treeToExpand() ?
             $this->categoryRepository->find($parameters->treeToExpand()) : null;
 
-        if (null === $treeToExpand) {
-            $treeToExpand = $this->userContext->getUserProductCategoryTree();
+        if (null === $selectNode) {
+            $selectNode = $this->userContext->getUserProductCategoryTree();
         }
 
         $translationLocale = $this->userContext->getCurrentLocale();
@@ -78,7 +78,7 @@ class ListCategories
                 $category->code(),
                 $category->label(),
                 $category->numberProductsInCategory(),
-                $category->id() === $treeToExpand->getId()
+                $category->id() === $selectNode->getRoot()
             );
         }
 
