@@ -5,11 +5,10 @@ declare(strict_types=1);
 namespace Pim\Component\Enrich\CategoryTree;
 
 /**
- * @author    Alexandre Hocquard <alexandre.hocquard@akeneo.com>
  * @copyright 2018 Akeneo SAS (http://www.akeneo.com)
  * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-class ListChildrenCategoriesParameters
+class ListChildrenCategoriesWithCount
 {
     /** @var int */
     private $childrenCategoryIdToExpand;
@@ -18,26 +17,20 @@ class ListChildrenCategoriesParameters
     private $categoryIdToFilterWith;
 
     /** @var bool */
-    private $countProductsInCategories;
-
-    /** @var bool */
     private $countByIncludingSubCategories;
 
     /**
      * @param int  $childrenCategoryIdToExpand
      * @param int  $categoryIdToFilterWith
-     * @param bool $countProductsInCategories
      * @param bool $countByIncludingSubCategories
      */
     public function __construct(
         int $childrenCategoryIdToExpand,
         int $categoryIdToFilterWith,
-        bool $countProductsInCategories,
         bool $countByIncludingSubCategories
     ) {
         $this->childrenCategoryIdToExpand = $childrenCategoryIdToExpand;
         $this->categoryIdToFilterWith = $categoryIdToFilterWith;
-        $this->countProductsInCategories = $countProductsInCategories;
         $this->countByIncludingSubCategories = $countByIncludingSubCategories;
     }
 
@@ -72,14 +65,6 @@ class ListChildrenCategoriesParameters
     public function categoryIdToFilterWith(): int
     {
         return $this->categoryIdToFilterWith;
-    }
-
-    /**
-     * @return bool
-     */
-    public function countProductsInCategories(): bool
-    {
-        return $this->countProductsInCategories;
     }
 
     /**

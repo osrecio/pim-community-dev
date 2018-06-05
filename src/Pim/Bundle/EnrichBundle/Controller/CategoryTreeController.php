@@ -13,8 +13,8 @@ use Pim\Bundle\EnrichBundle\Event\CategoryEvents;
 use Pim\Bundle\EnrichBundle\Flash\Message;
 use Pim\Bundle\UserBundle\Context\UserContext;
 use Pim\Component\Enrich\CategoryTree\ListCategories;
-use Pim\Component\Enrich\CategoryTree\ListChildrenCategoriesParameters;
-use Pim\Component\Enrich\CategoryTree\ListRootCategoriesParameters;
+use Pim\Component\Enrich\CategoryTree\ListChildrenCategoriesWithCount;
+use Pim\Component\Enrich\CategoryTree\ListRootCategoriesWithCount;
 use Pim\Component\Enrich\CategoryTree\Normalizer;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
@@ -140,13 +140,19 @@ class CategoryTreeController extends Controller
             throw new AccessDeniedException();
         }
 
-        $parameters = new ListRootCategoriesParameters(
-            $request->query->getInt('select_node_id', -1),
-            $request->query->getBoolean('with_items_count', true),
-            $request->query->getBoolean('include_sub', false)
-        );
-        $rootCategories = $this->listCategories->listRootCategories($parameters);
-        $normalizedData = $this->rootCategoryNormalizer->normalizeList($rootCategories);
+        $context = $request->query->get('context');
+
+        /**
+         * In this context, count of the category is implicit.
+         */
+        if (self::CONTEXT_MANAGE === $context) {
+            $parameters = new ListRootCategoriesWithCount(
+                $request->query->getInt('select_node_id', -1),
+                $request->query->getBoolean('include_sub', false)
+            );
+            $rootCategories = $this->listCategories->listRootCategories($parameters);
+            $normalizedData = $this->rootCategoryNormalizer->normalizeList($rootCategories);
+        }
 
         return new JsonResponse($normalizedData);
     }
@@ -213,11 +219,10 @@ class CategoryTreeController extends Controller
         }
         $context = $request->query->get('context');
 
-        if (self::CONTEXT_VIEW === $context || self::CONTEXT_MANAGE === $context) {
-            $parameters = new ListChildrenCategoriesParameters(
+        if (self::CONTEXT_VIEW === $context) {
+            $parameters = new ListChildrenCategoriesWithCount(
                 $request->query->getInt('id', -1),
                 $request->query->getInt('select_node_id', -1),
-                $request->query->getBoolean('with_items_count', true),
                 $request->query->getBoolean('include_sub', false)
             );
 
@@ -225,65 +230,50 @@ class CategoryTreeController extends Controller
             $normalizedData = $this->categoryWithChildrenNormalizer->normalizeList($categories);
 
             return new JsonResponse($normalizedData);
-        }
+        } else {
+            try {
+                $parent = $this->findCategory($request->get('id'));
+            } catch (\Exception $e) {
+                $parent = $this->userContext->getUserProductCategoryTree();
+            }
 
-        // TODO: do a query for that
-        if (self::CONTEXT_MANAGE === $context) {
-            return new JsonResponse([]);
-        }
+            $selectNodeId = $request->get('select_node_id', -1);
 
-        // TODO: do a query for that
-        if (self::CONTEXT_ASSOCIATE === $context && true === $request->query->getBoolean('include_parent')) {
-            return new JsonResponse([]);
-        }
+            try {
+                $selectNode = $this->findCategory($selectNodeId);
 
-        // TODO: do another query for that
-        if (self::CONTEXT_ASSOCIATE === $context && false === $request->query->getBoolean('include_parent')) {
-            return new JsonResponse([]);
-        }
+                if (!$this->categoryRepository->isAncestor($parent, $selectNode)) {
+                    $selectNode = null;
+                }
+            } catch (NotFoundHttpException $e) {
+                $selectNode = null;
+            }
 
-        //try {
-        //    $parent = $this->findCategory($request->get('id'));
-        //} catch (\Exception $e) {
-        //    $parent = $this->userContext->getUserProductCategoryTree();
-        //}
-        //
-        //$selectNodeId = $request->get('select_node_id', -1);
-        //
-        //try {
-        //    $selectNode = $this->findCategory($selectNodeId);
-        //
-        //    if (!$this->categoryRepository->isAncestor($parent, $selectNode)) {
-        //        $selectNode = null;
-        //    }
-        //} catch (NotFoundHttpException $e) {
-        //    $selectNode = null;
-        //}
-        //
-        //$categories = $this->getChildrenCategories($request, $selectNode, $parent);
-        //
-        //if (null === $selectNode) {
-        //    $view = 'PimEnrichBundle:CategoryTree:children.json.twig';
-        //} else {
-        //    $view = 'PimEnrichBundle:CategoryTree:children-tree.json.twig';
-        //}
-        //
-        //$withItemsCount = (bool) $request->get('with_items_count', false);
-        //$includeParent = $request->query->getBoolean('include_parent', false);
-        //$includeSub = (bool) $request->get('include_sub', false);
-        //
-        //return $this->render(
-        //    $view,
-        //    [
-        //        'categories'     => $categories,
-        //        'parent'         => ($includeParent) ? $parent : null,
-        //        'include_sub'    => $includeSub,
-        //        'item_count'     => $withItemsCount,
-        //        'select_node'    => $selectNode,
-        //        'related_entity' => $this->rawConfiguration['related_entity']
-        //    ],
-        //    new JsonResponse()
-        //);
+            $categories = $this->getChildrenCategories($request, $selectNode, $parent);
+
+            if (null === $selectNode) {
+                $view = 'PimEnrichBundle:CategoryTree:children.json.twig';
+            } else {
+                $view = 'PimEnrichBundle:CategoryTree:children-tree.json.twig';
+            }
+
+            $withItemsCount = (bool) $request->get('with_items_count', false);
+            $includeParent = $request->query->getBoolean('include_parent', false);
+            $includeSub = (bool) $request->get('include_sub', false);
+
+            return $this->render(
+                $view,
+                [
+                    'categories'     => $categories,
+                    'parent'         => ($includeParent) ? $parent : null,
+                    'include_sub'    => $includeSub,
+                    'item_count'     => $withItemsCount,
+                    'select_node'    => $selectNode,
+                    'related_entity' => $this->rawConfiguration['related_entity']
+                ],
+                new JsonResponse()
+            );
+        }
     }
 
     /**

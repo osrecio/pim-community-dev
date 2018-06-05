@@ -10,11 +10,10 @@ use Pim\Component\Enrich\CategoryTree\Query;
 use Pim\Component\Enrich\CategoryTree\ReadModel;
 
 /**
- * @author    Alexandre Hocquard <alexandre.hocquard@akeneo.com>
  * @copyright 2018 Akeneo SAS (http://www.akeneo.com)
  * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-class ListCategories
+class ListChildrenCategoriesWithCountHandler
 {
     /** @var CategoryRepositoryInterface */
     private $categoryRepository;
@@ -47,50 +46,11 @@ class ListCategories
     }
 
     /**
-     * @param ListRootCategoriesParameters $parameters
-     *
-     * @return ReadModel\RootCategory[]
-     */
-    public function listRootCategories(ListRootCategoriesParameters $parameters): array
-    {
-        $selectNode = -1 !== $parameters->treeToExpand() ?
-            $this->categoryRepository->find($parameters->treeToExpand()) : null;
-
-        if (null === $selectNode) {
-            $selectNode = $this->userContext->getUserProductCategoryTree();
-        }
-
-        $translationLocale = $this->userContext->getCurrentLocale();
-        $user = $this->userContext->getUser();
-
-        $categories = $this->getChildrenCategories->fetchTreesWithChildrenCategories($translationLocale, $user);
-
-        if ($parameters->countProductsInCategories()) {
-            $categories = $parameters->countByIncludingSubCategories() ?
-                $this->countProductInCategories->countByIncludingSubCategories($categories) :
-                $this->countProductInCategories->countWithoutIncludingSubCategories($categories);
-        }
-
-        $rootCategories = [];
-        foreach ($categories as $category) {
-            $rootCategories[] = new ReadModel\RootCategory(
-                $category->id(),
-                $category->code(),
-                $category->label(),
-                $category->numberProductsInCategory(),
-                $category->id() === $selectNode->getRoot()
-            );
-        }
-
-        return $rootCategories;
-    }
-
-    /**
-     * @param ListChildrenCategoriesParameters $parameters
+     * @param ListChildrenCategoriesWithCount $parameters
      *
      * @return ReadModel\CategoryWithChildren[]
      */
-    public function listChildrenCategories(ListChildrenCategoriesParameters $parameters): array
+    public function list(ListChildrenCategoriesWithCount $parameters): array
     {
         $categoryToExpand = -1 !== $parameters->childrenCategoryIdToExpand() ?
             $this->categoryRepository->find($parameters->childrenCategoryIdToExpand()) : null;
