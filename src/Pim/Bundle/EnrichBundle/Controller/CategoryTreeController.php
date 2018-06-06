@@ -12,9 +12,10 @@ use Oro\Bundle\SecurityBundle\SecurityFacade;
 use Pim\Bundle\EnrichBundle\Event\CategoryEvents;
 use Pim\Bundle\EnrichBundle\Flash\Message;
 use Pim\Bundle\UserBundle\Context\UserContext;
-use Pim\Component\Enrich\CategoryTree\ListCategories;
 use Pim\Component\Enrich\CategoryTree\ListChildrenCategoriesWithCount;
+use Pim\Component\Enrich\CategoryTree\ListChildrenCategoriesWithCountHandler;
 use Pim\Component\Enrich\CategoryTree\ListRootCategoriesWithCount;
+use Pim\Component\Enrich\CategoryTree\ListRootCategoriesWithCountHandler;
 use Pim\Component\Enrich\CategoryTree\Normalizer;
 use Sensio\Bundle\FrameworkExtraBundle\Configuration\Template;
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
@@ -46,14 +47,17 @@ class CategoryTreeController extends Controller
     /** @staticvar string */
     const CONTEXT_ASSOCIATE = 'associate';
 
-    /** @var ListCategories */
-    protected $listCategories;
+    /** @var ListRootCategoriesWithCountHandler */
+    protected $listRootCategoriesWithCount;
+
+    /** @var ListChildrenCategoriesWithCountHandler */
+    protected $listChildrenCategoriesWithCount;
 
     /** @var Normalizer\RootCategory */
     protected $rootCategoryNormalizer;
 
-    /** @var Normalizer\CategoryWithChildren */
-    protected $categoryWithChildrenNormalizer;
+    /** @var Normalizer\ChildCategory */
+    protected $childCategoryNormalizer;
 
     /** @var EventDispatcherInterface */
     protected $eventDispatcher;
@@ -82,22 +86,24 @@ class CategoryTreeController extends Controller
     /**
      * Constructor
      *
-     * @param ListCategories                  $listCategories
-     * @param Normalizer\RootCategory         $rootcategoryNormalizer
-     * @param Normalizer\CategoryWithChildren $categoryWithChildrenNormalizer
-     * @param EventDispatcherInterface        $eventDispatcher
-     * @param UserContext                     $userContext
-     * @param SaverInterface                  $categorySaver
-     * @param RemoverInterface                $categoryRemover
-     * @param SimpleFactoryInterface          $categoryFactory
-     * @param CategoryRepositoryInterface     $categoryRepository
-     * @param SecurityFacade                  $securityFacade
-     * @param array                           $rawConfiguration
+     * @param ListRootCategoriesWithCountHandler     $listRootCategoriesWithCount
+     * @param ListChildrenCategoriesWithCountHandler $listChildrenCategoriesWithCount
+     * @param Normalizer\RootCategory                $rootCategoryNormalizer
+     * @param Normalizer\ChildCategory               $childCategoryNormalizer
+     * @param EventDispatcherInterface               $eventDispatcher
+     * @param UserContext                            $userContext
+     * @param SaverInterface                         $categorySaver
+     * @param RemoverInterface                       $categoryRemover
+     * @param SimpleFactoryInterface                 $categoryFactory
+     * @param CategoryRepositoryInterface            $categoryRepository
+     * @param SecurityFacade                         $securityFacade
+     * @param array                                  $rawConfiguration
      */
     public function __construct(
-        ListCategories $listCategories,
+        ListRootCategoriesWithCountHandler $listRootCategoriesWithCount,
+        ListChildrenCategoriesWithCountHandler $listChildrenCategoriesWithCount,
         Normalizer\RootCategory $rootCategoryNormalizer,
-        Normalizer\CategoryWithChildren $categoryWithChildrenNormalizer,
+        Normalizer\ChildCategory $childCategoryNormalizer,
         EventDispatcherInterface $eventDispatcher,
         UserContext $userContext,
         SaverInterface $categorySaver,
@@ -107,9 +113,10 @@ class CategoryTreeController extends Controller
         SecurityFacade $securityFacade,
         array $rawConfiguration
     ) {
-        $this->listCategories = $listCategories;
+        $this->listRootCategoriesWithCount = $listRootCategoriesWithCount;
+        $this->listChildrenCategoriesWithCount = $listChildrenCategoriesWithCount;
         $this->rootCategoryNormalizer = $rootCategoryNormalizer;
-        $this->categoryWithChildrenNormalizer = $categoryWithChildrenNormalizer;
+        $this->childCategoryNormalizer = $childCategoryNormalizer;
         $this->eventDispatcher = $eventDispatcher;
         $this->userContext = $userContext;
         $this->categorySaver = $categorySaver;
@@ -140,21 +147,26 @@ class CategoryTreeController extends Controller
             throw new AccessDeniedException();
         }
 
+        $user = $this->userContext->getUser();
+        $translationLocale = $this->userContext->getCurrentLocale();
+
         $context = $request->query->get('context');
 
         /**
          * In this context, count of the category is implicit.
          */
-        if (self::CONTEXT_MANAGE === $context) {
+        if (self::CONTEXT_VIEW === $context) {
             $parameters = new ListRootCategoriesWithCount(
                 $request->query->getInt('select_node_id', -1),
-                $request->query->getBoolean('include_sub', false)
+                $request->query->getBoolean('include_sub', false),
+                $user,
+                $translationLocale
             );
-            $rootCategories = $this->listCategories->listRootCategories($parameters);
+            $rootCategories = $this->listRootCategoriesWithCount->list($parameters);
             $normalizedData = $this->rootCategoryNormalizer->normalizeList($rootCategories);
-        }
 
-        return new JsonResponse($normalizedData);
+            return new JsonResponse($normalizedData);
+        }
     }
 
     /**
@@ -220,14 +232,19 @@ class CategoryTreeController extends Controller
         $context = $request->query->get('context');
 
         if (self::CONTEXT_VIEW === $context) {
+            $user = $this->userContext->getUser();
+            $translationLocale = $this->userContext->getCurrentLocale();
+
             $parameters = new ListChildrenCategoriesWithCount(
                 $request->query->getInt('id', -1),
                 $request->query->getInt('select_node_id', -1),
-                $request->query->getBoolean('include_sub', false)
+                $request->query->getBoolean('include_sub', false),
+                $user,
+                $translationLocale
             );
 
-            $categories = $this->listCategories->listChildrenCategories($parameters);
-            $normalizedData = $this->categoryWithChildrenNormalizer->normalizeList($categories);
+            $categories = $this->listChildrenCategoriesWithCount->list($parameters);
+            $normalizedData = $this->childCategoryNormalizer->normalizeList($categories);
 
             return new JsonResponse($normalizedData);
         } else {
@@ -257,9 +274,9 @@ class CategoryTreeController extends Controller
                 $view = 'PimEnrichBundle:CategoryTree:children-tree.json.twig';
             }
 
-            $withItemsCount = (bool) $request->get('with_items_count', false);
+            $withItemsCount = (bool)$request->get('with_items_count', false);
             $includeParent = $request->query->getBoolean('include_parent', false);
-            $includeSub = (bool) $request->get('include_sub', false);
+            $includeSub = (bool)$request->get('include_sub', false);
 
             return $this->render(
                 $view,
@@ -269,7 +286,7 @@ class CategoryTreeController extends Controller
                     'include_sub'    => $includeSub,
                     'item_count'     => $withItemsCount,
                     'select_node'    => $selectNode,
-                    'related_entity' => $this->rawConfiguration['related_entity']
+                    'related_entity' => $this->rawConfiguration['related_entity'],
                 ],
                 new JsonResponse()
             );
@@ -334,7 +351,7 @@ class CategoryTreeController extends Controller
                 return new JsonResponse(
                     [
                         'route'  => $this->buildRouteName('categorytree_edit'),
-                        'params' => ['id' => $category->getId()]
+                        'params' => ['id' => $category->getId()],
                     ]
                 );
             }

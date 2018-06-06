@@ -21,28 +21,28 @@ class ListRootCategoriesWithCountHandler
     /** @var UserContext */
     private $userContext;
 
-    /** @var Query\GetCategories */
-    private $getChildrenCategories;
+    /** @var Query\ListRootCategoriesWithCount */
+    private $listAndCountIncludingSubCategories;
 
-    /** @var Query\CountProductsInCategories */
-    private $countProductInCategories;
+    /** @var Query\ListRootCategoriesWithCount */
+    private $listAndCountWithoutIncludingSubCategories;
 
     /**
-     * @param CategoryRepositoryInterface     $categoryRepository
-     * @param UserContext                     $userContext
-     * @param Query\GetCategories             $getChildrenCategories
-     * @param Query\CountProductsInCategories $countProductInCategories
+     * @param CategoryRepositoryInterface       $categoryRepository
+     * @param UserContext                       $userContext
+     * @param Query\ListRootCategoriesWithCount $listAndCountIncludingSubCategories
+     * @param Query\ListRootCategoriesWithCount $listAndCountWithoutIncludingSubCategories
      */
     public function __construct(
         CategoryRepositoryInterface $categoryRepository,
         UserContext $userContext,
-        Query\GetCategories $getChildrenCategories,
-        Query\CountProductsInCategories $countProductInCategories
+        Query\ListRootCategoriesWithCount $listAndCountIncludingSubCategories,
+        Query\ListRootCategoriesWithCount $listAndCountWithoutIncludingSubCategories
     ) {
         $this->categoryRepository = $categoryRepository;
         $this->userContext = $userContext;
-        $this->getChildrenCategories = $getChildrenCategories;
-        $this->countProductInCategories = $countProductInCategories;
+        $this->listAndCountIncludingSubCategories = $listAndCountIncludingSubCategories;
+        $this->listAndCountWithoutIncludingSubCategories = $listAndCountWithoutIncludingSubCategories;
     }
 
     /**
@@ -52,32 +52,26 @@ class ListRootCategoriesWithCountHandler
      */
     public function list(ListRootCategoriesWithCount $parameters): array
     {
-        $selectNode = -1 !== $parameters->treeToExpand() ?
-            $this->categoryRepository->find($parameters->treeToExpand()) : null;
+        $categoryToFilter = -1 !== $parameters->categoryIdToFilterWith() ?
+            $this->categoryRepository->find($parameters->categoryIdToFilterWith()) : null;
 
-        if (null === $selectNode) {
-            $selectNode = $this->userContext->getUserProductCategoryTree();
+        // TODO: don't use user context but a query instead
+        if (null === $categoryToFilter) {
+            $categoryToFilter = $this->userContext->getUserProductCategoryTree();
         }
+        $rootCategoryIdToExpand = $categoryToFilter->getRoot();
 
-        $translationLocale = $this->userContext->getCurrentLocale();
-        $user = $this->userContext->getUser();
-
-        $categoriesWithoutCount = $this->getChildrenCategories->fetchTreesWithChildrenCategories($translationLocale, $user);
-
-        $categoriesWithCount = $parameters->countIncludingSubCategories() ?
-            $this->countProductInCategories->countByIncludingSubCategories($categoriesWithoutCount) :
-            $this->countProductInCategories->countWithoutIncludingSubCategories($categoriesWithoutCount);
-
-        $rootCategories = [];
-        foreach ($categoriesWithCount as $categoryWithCount) {
-            $rootCategories[] = new ReadModel\RootCategory(
-                $categoryWithCount->id(),
-                $categoryWithCount->code(),
-                $categoryWithCount->label(),
-                $categoryWithCount->numberProductsInCategory(),
-                $categoryWithCount->id() === $selectNode->getRoot()
+        $rootCategories = $parameters->countIncludingSubCategories() ?
+            $this->listAndCountIncludingSubCategories->list(
+                $parameters->translationLocale(),
+                $parameters->user(),
+                $rootCategoryIdToExpand
+            ) :
+            $this->listAndCountWithoutIncludingSubCategories->list(
+                $parameters->translationLocale(),
+                $parameters->user(),
+                $rootCategoryIdToExpand
             );
-        }
 
         return $rootCategories;
     }

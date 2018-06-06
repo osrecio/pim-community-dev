@@ -21,34 +21,34 @@ class ListChildrenCategoriesWithCountHandler
     /** @var UserContext */
     private $userContext;
 
-    /** @var Query\GetCategories */
-    private $getChildrenCategories;
+    /** @var Query\ListChildrenCategoriesWithCount */
+    private $listAndCountIncludingSubCategories;
 
-    /** @var Query\CountProductsInCategories */
-    private $countProductInCategories;
+    /** @var Query\ListChildrenCategoriesWithCount */
+    private $listAndCountWithoutIncludingSubCategories;
 
     /**
-     * @param CategoryRepositoryInterface     $categoryRepository
-     * @param UserContext                     $userContext
-     * @param Query\GetCategories             $getChildrenCategories
-     * @param Query\CountProductsInCategories $countProductInCategories
+     * @param CategoryRepositoryInterface           $categoryRepository
+     * @param UserContext                           $userContext
+     * @param Query\ListChildrenCategoriesWithCount $listAndCountIncludingSubCategories
+     * @param Query\ListChildrenCategoriesWithCount $listAndCountWithoutIncludingSubCategories
      */
     public function __construct(
         CategoryRepositoryInterface $categoryRepository,
         UserContext $userContext,
-        Query\GetCategories $getChildrenCategories,
-        Query\CountProductsInCategories $countProductInCategories
+        Query\ListChildrenCategoriesWithCount $listAndCountIncludingSubCategories,
+        Query\ListChildrenCategoriesWithCount $listAndCountWithoutIncludingSubCategories
     ) {
         $this->categoryRepository = $categoryRepository;
         $this->userContext = $userContext;
-        $this->getChildrenCategories = $getChildrenCategories;
-        $this->countProductInCategories = $countProductInCategories;
+        $this->listAndCountIncludingSubCategories = $listAndCountIncludingSubCategories;
+        $this->listAndCountWithoutIncludingSubCategories = $listAndCountWithoutIncludingSubCategories;
     }
 
     /**
      * @param ListChildrenCategoriesWithCount $parameters
      *
-     * @return ReadModel\CategoryWithChildren[]
+     * @return ReadModel\ChildCategory[]
      */
     public function list(ListChildrenCategoriesWithCount $parameters): array
     {
@@ -67,21 +67,21 @@ class ListChildrenCategoriesWithCountHandler
             $categoryToFilterWith = null;
         }
 
-        $translationLocale = $this->userContext->getCurrentLocale();
-        $user = $this->userContext->getUser();
+        $categoryIdToFilterWith = null !== $categoryToFilterWith ? $categoryToFilterWith->getId() : null;
 
-        $categories = $this->getChildrenCategories->fetchChildrenCategories(
-            $translationLocale,
-            $user,
-            $categoryToExpand,
-            $categoryToFilterWith
-        );
-
-        if ($parameters->countProductsInCategories()) {
-            $categories = $parameters->countByIncludingSubCategories() ?
-                $this->countProductInCategories->countByIncludingSubCategories($categories) :
-                $this->countProductInCategories->countWithoutIncludingSubCategories($categories);
-        }
+        $categories = $parameters->countIncludingSubCategories() ?
+            $this->listAndCountIncludingSubCategories->list(
+                $parameters->translationLocale(),
+                $parameters->user(),
+                $categoryToExpand->getId(),
+                $categoryIdToFilterWith
+            ) :
+            $this->listAndCountWithoutIncludingSubCategories->list(
+                $parameters->translationLocale(),
+                $parameters->user(),
+                $categoryToExpand->getId(),
+                $categoryIdToFilterWith
+            );
 
         return $categories;
     }

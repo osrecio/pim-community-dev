@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Pim\Component\Enrich\CategoryTree;
 
+use Akeneo\Channel\Component\Model\LocaleInterface;
+use Pim\Component\User\Model\UserInterface;
+
 /**
  * @copyright 2018 Akeneo SAS (http://www.akeneo.com)
  * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
@@ -17,21 +20,28 @@ class ListChildrenCategoriesWithCount
     private $categoryIdToFilterWith;
 
     /** @var bool */
-    private $countByIncludingSubCategories;
+    private $countIncludingSubCategories;
+
+    /** @var  UserInterface */
+    private $user;
+
+    /** @var LocaleInterface */
+    private $translationLocale;
 
     /**
-     * @param int  $childrenCategoryIdToExpand
-     * @param int  $categoryIdToFilterWith
-     * @param bool $countByIncludingSubCategories
+     * @param int             $childrenCategoryIdToExpand
+     * @param int             $categoryIdToFilterWith
+     * @param bool            $countByIncludingSubCategories
+     * @param UserInterface   $user
+     * @param LocaleInterface $translationLocale
      */
-    public function __construct(
-        int $childrenCategoryIdToExpand,
-        int $categoryIdToFilterWith,
-        bool $countByIncludingSubCategories
-    ) {
+    public function __construct($childrenCategoryIdToExpand, $categoryIdToFilterWith, $countByIncludingSubCategories, UserInterface $user, LocaleInterface $translationLocale)
+    {
         $this->childrenCategoryIdToExpand = $childrenCategoryIdToExpand;
         $this->categoryIdToFilterWith = $categoryIdToFilterWith;
-        $this->countByIncludingSubCategories = $countByIncludingSubCategories;
+        $this->countIncludingSubCategories = $countByIncludingSubCategories;
+        $this->user = $user;
+        $this->translationLocale = $translationLocale;
     }
 
     /**
@@ -70,8 +80,26 @@ class ListChildrenCategoriesWithCount
     /**
      * @return bool
      */
-    public function countByIncludingSubCategories(): bool
+    public function countIncludingSubCategories(): bool
     {
-        return $this->countByIncludingSubCategories;
+        return $this->countIncludingSubCategories;
     }
+
+    /**
+     * @return UserInterface
+     */
+    public function user(): UserInterface
+    {
+        return $this->user;
+    }
+
+    /**
+     * @return LocaleInterface
+     */
+    public function translationLocale(): LocaleInterface
+    {
+        return $this->translationLocale;
+    }
+
+
 }

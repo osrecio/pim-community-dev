@@ -7,14 +7,13 @@ namespace Pim\Component\Enrich\CategoryTree\Normalizer;
 use Pim\Component\Enrich\CategoryTree\ReadModel;
 
 /**
- * @author    Alexandre Hocquard <alexandre.hocquard@akeneo.com>
  * @copyright 2018 Akeneo SAS (http://www.akeneo.com)
  * @license   http://opensource.org/licenses/osl-3.0.php  Open Software License (OSL 3.0)
  */
-class CategoryWithChildren
+class ChildCategory
 {
     /**
-     * @param ReadModel\CategoryWithChildren[] $categories
+     * @param ReadModel\ChildCategory[] $categories
      *
      * @return array
      */
@@ -44,11 +43,11 @@ class CategoryWithChildren
     /**
      * This dirty css stuff should be done on frontend side.
      *
-     * @param ReadModel\CategoryWithChildren $category
+     * @param ReadModel\ChildCategory $category
      *
      * @return string
      */
-    private function state(ReadModel\CategoryWithChildren $category): string
+    private function state(ReadModel\ChildCategory $category): string
     {
         $state = $category->isLeaf() ? 'leaf' : 'closed';
         if ($category->isExpanded()) {

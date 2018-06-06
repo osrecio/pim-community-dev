@@ -1,32 +1,60 @@
 parameters:
-    pim_enrich.category_tree.list_categories.class: Pim\Component\Enrich\CategoryTree\ListCategories
-    pim_enrich.category_tree.query.get_categories.class: Pim\Bundle\EnrichBundle\Categorytree\Query\Sql\GetCategories
-    pim_enrich.category_tree.query.count_products_in_categories.class: Pim\Bundle\EnrichBundle\CategoryTree\Query\Elasticsearch\CountProductsInCategories
+    pim_enrich.category_tree.list_root_categories_with_count_handler.class: Pim\Component\Enrich\CategoryTree\ListRootCategoriesWithCountHandler
+    pim_enrich.category_tree.list_children_categories_with_count_handler.class: Pim\Component\Enrich\CategoryTree\ListChildrenCategoriesWithCountHandler
+    pim_enrich.category_tree.query.list_root_categories_with_count_including_sub_categories.class: Pim\Bundle\EnrichBundle\CategoryTree\Query\ElasticsearchAndSql\ListRootCategoriesWithCountIncludingSubCategories
+    pim_enrich.category_tree.query.list_root_categories_with_count_not_including_sub_categories.class: Pim\Bundle\EnrichBundle\CategoryTree\Query\ElasticsearchAndSql\ListRootCategoriesWithCountNotIncludingSubCategories
+    pim_enrich.category_tree.query.list_children_categories_with_count_including_sub_categories.class: Pim\Bundle\EnrichBundle\CategoryTree\Query\ElasticsearchAndSql\ListChildrenCategoriesWithCountIncludingSubCategories
+    pim_enrich.category_tree.query.list_children_categories_with_count_not_including_sub_categories.class: Pim\Bundle\EnrichBundle\CategoryTree\Query\ElasticsearchAndSql\ListChildrenCategoriesWithCountNotIncludingSubCategories
     pim_enrich.category_tree.normalizer.root_category.class: Pim\Component\Enrich\CategoryTree\Normalizer\RootCategory
-    pim_enrich.category_tree.normalizer.category_with_children.class: Pim\Component\Enrich\CategoryTree\Normalizer\CategoryWithChildren
+    pim_enrich.category_tree.normalizer.child_category.class: Pim\Component\Enrich\CategoryTree\Normalizer\ChildCategory
 
 services:
-    pim_enrich.category_tree.list_categories:
-        class: '%pim_enrich.category_tree.list_categories.class%'
+    pim_enrich.category_tree.list_root_categories_with_count_handler:
+        class: '%pim_enrich.category_tree.list_root_categories_with_count_handler.class%'
         arguments:
             - '@pim_catalog.repository.category'
             - '@pim_user.context.user'
-            - '@pim_enrich.category_tree.query.get_categories'
-            - '@pim_enrich.category_tree.query.count_products_in_categories'
+            - '@pim_enrich.category_tree.query.list_root_categories_with_count_including_sub_categories'
+            - '@pim_enrich.category_tree.query.list_root_categories_with_count_not_including_sub_categories'
 
-    pim_enrich.category_tree.query.get_categories:
-        class: '%pim_enrich.category_tree.query.get_categories.class%'
+    pim_enrich.category_tree.list_children_categories_with_count_handler:
+        class: '%pim_enrich.category_tree.list_children_categories_with_count_handler.class%'
+        arguments:
+            - '@pim_catalog.repository.category'
+            - '@pim_user.context.user'
+            - '@pim_enrich.category_tree.query.list_children_categories_with_count_including_sub_categories'
+            - '@pim_enrich.category_tree.query.list_children_categories_with_count_not_including_sub_categories'
+
+    pim_enrich.category_tree.query.list_root_categories_with_count_including_sub_categories:
+        class: '%pim_enrich.category_tree.query.list_root_categories_with_count_including_sub_categories.class%'
         arguments:
             - '@database_connection'
+            - '@akeneo_elasticsearch.client.product'
+            - 'pim_catalog_product'
 
-    pim_enrich.category_tree.query.count_products_in_categories:
-        class: '%pim_enrich.category_tree.query.count_products_in_categories.class%'
+    pim_enrich.category_tree.query.list_root_categories_with_count_not_including_sub_categories:
+        class: '%pim_enrich.category_tree.query.list_root_categories_with_count_not_including_sub_categories.class%'
         arguments:
+            - '@database_connection'
+            - '@akeneo_elasticsearch.client.product'
+            - 'pim_catalog_product'
+
+    pim_enrich.category_tree.query.list_children_categories_with_count_including_sub_categories:
+        class: '%pim_enrich.category_tree.query.list_children_categories_with_count_including_sub_categories.class%'
+        arguments:
+            - '@database_connection'
+            - '@akeneo_elasticsearch.client.product'
+            - 'pim_catalog_product'
+
+    pim_enrich.category_tree.query.list_children_categories_with_count_not_including_sub_categories:
+        class: '%pim_enrich.category_tree.query.list_children_categories_with_count_not_including_sub_categories.class%'
+        arguments:
+            - '@database_connection'
             - '@akeneo_elasticsearch.client.product'
             - 'pim_catalog_product'
 
     pim_enrich.category_tree.normalizer.root_category:
         class: '%pim_enrich.category_tree.normalizer.root_category.class%'
 
-    pim_enrich.category_tree.normalizer.category_with_children:
-        class: '%pim_enrich.category_tree.normalizer.category_with_children.class%'
+    pim_enrich.category_tree.normalizer.child_category:
+        class: '%pim_enrich.category_tree.normalizer.child_category.class%'
