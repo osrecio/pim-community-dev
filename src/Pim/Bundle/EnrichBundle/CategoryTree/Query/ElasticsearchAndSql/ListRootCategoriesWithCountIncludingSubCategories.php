@@ -66,11 +66,11 @@ class ListRootCategoriesWithCountIncludingSubCategories implements ListRootCateg
     {
         // TODO: use JSON_ARRAYAGG instead of GROUP_CONCAT (Mysql 5.7.22), or modify size max of GROUP CONCAT
         $sql = <<<SQL
-			SELECT
-				root.id as root_id,
-				root.code as root_code, 
-            	child.children_codes,
-            	COALESCE(ct.label, root.code) as label
+            SELECT
+               	root.id as root_id,
+   	            root.code as root_code, 
+                child.children_codes,
+                COALESCE(ct.label, root.code) as label
             FROM pim_catalog_category AS root
             LEFT JOIN pim_catalog_category_translation ct ON ct.foreign_key = root.id AND ct.locale = :locale
             LEFT JOIN

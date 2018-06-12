@@ -22,9 +22,7 @@ class ChildCategory
         $normalizedCategories = [];
 
         foreach ($categories as $category) {
-            $label = -1 < $category->numberProductsInCategory() ?
-                sprintf('%s (%s)', $category->label(), $category->numberProductsInCategory()) :
-                $category->label();
+            $label = sprintf('%s (%s)', $category->label(), $category->numberProductsInCategory());
 
             $normalizedCategories[] = [
                 'attr' => [

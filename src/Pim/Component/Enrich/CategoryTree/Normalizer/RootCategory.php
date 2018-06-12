@@ -22,9 +22,7 @@ class RootCategory
         $normalizedCategories = [];
 
         foreach ($rootCategories as $rootCategory) {
-            $label = -1 < $rootCategory->numberProductsInCategory() ?
-                sprintf('%s (%s)', $rootCategory->label(), $rootCategory->numberProductsInCategory()) :
-                $rootCategory->label();
+            $label = sprintf('%s (%s)', $rootCategory->label(), $rootCategory->numberProductsInCategory());
 
             $normalizedCategories[] = [
                 'id' => $rootCategory->id(),

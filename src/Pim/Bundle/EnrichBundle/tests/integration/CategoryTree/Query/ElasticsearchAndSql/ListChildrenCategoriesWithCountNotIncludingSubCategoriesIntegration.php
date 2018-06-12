@@ -9,7 +9,7 @@ use Akeneo\Test\Integration\TestCase;
 use PHPUnit\Framework\Assert;
 use Pim\Component\Enrich\CategoryTree\ReadModel\ChildCategory;
 
-class ListChildrenCategoriesWithCountIncludingSubCategoriesIntegration extends TestCase
+class ListChildrenCategoriesWithCountNotIncludingSubCategoriesIntegration extends TestCase
 {
     /**
      * @inheritDoc
@@ -51,7 +51,7 @@ class ListChildrenCategoriesWithCountIncludingSubCategoriesIntegration extends T
      */
     public function listChildCategories()
     {
-        $query = $this->get('pim_enrich.category_tree.query.list_children_categories_with_count_including_sub_categories');
+        $query = $this->get('pim_enrich.category_tree.query.list_children_categories_with_count_not_including_sub_categories');
         $locale = $this->get('pim_catalog.repository.locale')->findOneByIdentifier('en_US');
         $user = $this->get('pim_user.repository.user')->findOneByIdentifier('admin');
         $fromCategory = $this->get('pim_catalog.repository.category')->findOneByIdentifier('tree_1');
@@ -59,7 +59,7 @@ class ListChildrenCategoriesWithCountIncludingSubCategoriesIntegration extends T
         $result = $query->list($locale, $user, $fromCategory->getId(), null);
 
         $expectedCategories = [
-            new ChildCategory(1, 'tree_1_child_1_level_1', 'Tree_1_child_1_level_1', false, false, 2, []),
+            new ChildCategory(1, 'tree_1_child_1_level_1', 'Tree_1_child_1_level_1', false, false, 1, []),
             new ChildCategory(2, 'tree_1_child_2_level_1', 'Tree_1_child_2_level_1', false, true, 1, []),
             new ChildCategory(3, 'tree_1_child_3_level_1', 'Tree_1_child_3_level_1', false, true, 0, []),
         ];
@@ -72,7 +72,7 @@ class ListChildrenCategoriesWithCountIncludingSubCategoriesIntegration extends T
      */
     public function listChildCategoriesFromACategoryUntilAGivenChildCategory()
     {
-        $query = $this->get('pim_enrich.category_tree.query.list_children_categories_with_count_including_sub_categories');
+        $query = $this->get('pim_enrich.category_tree.query.list_children_categories_with_count_not_including_sub_categories');
         $locale = $this->get('pim_catalog.repository.locale')->findOneByIdentifier('en_US');
         $user = $this->get('pim_user.repository.user')->findOneByIdentifier('admin');
         $fromCategory = $this->get('pim_catalog.repository.category')->findOneByIdentifier('tree_1');
@@ -81,8 +81,8 @@ class ListChildrenCategoriesWithCountIncludingSubCategoriesIntegration extends T
         $result = $query->list($locale, $user, $fromCategory->getId(), $toCategory->getId());
 
         $expectedCategories = [
-            new ChildCategory(1, 'tree_1_child_1_level_1', 'Tree_1_child_1_level_1', false, false, 2, [
-                new ChildCategory(2, 'tree_1_child_1_level_2', 'Tree_1_child_1_level_2', false, false, 2, [
+            new ChildCategory(1, 'tree_1_child_1_level_1', 'Tree_1_child_1_level_1', false, false, 1, [
+                new ChildCategory(2, 'tree_1_child_1_level_2', 'Tree_1_child_1_level_2', false, false, 1, [
                     new ChildCategory(3, 'tree_1_child_1_level_3', 'Tree_1_child_1_level_3', true, true, 1, [])
                 ]),
                 new ChildCategory(4, 'tree_1_child_2_level_2', 'Tree_1_child_2_level_2', false, true, 0, [])
@@ -120,6 +120,44 @@ class ListChildrenCategoriesWithCountIncludingSubCategoriesIntegration extends T
         Assert::assertEquals($expectedCategory->isUsedAsFilter(), $category->isUsedAsFilter());
         Assert::assertEquals($expectedCategory->numberProductsInCategory(), $category->numberProductsInCategory());
         $this->assertSameListOfChildCategories($expectedCategory->childrenCategoriesToExpand(), $category->childrenCategoriesToExpand());
+    }
+
+    /**
+     * @param array       $categories
+     * @param null|string $parentCode
+     */
+    private function givenTheCategoryTrees(array $categories, ?string $parentCode = null): void
+    {
+        foreach ($categories as $categoryCode => $children) {
+            $category = $this->get('pim_catalog.factory.category')->create();
+            $this->get('pim_catalog.updater.category')->update($category, [
+                'code' => $categoryCode,
+                'parent' => $parentCode ?? null,
+                'labels' => ['en_US' => ucfirst($categoryCode)]
+            ]);
+            Assert::assertEquals(0, $this->get('validator')->validate($category)->count());
+            $this->get('pim_catalog.saver.category')->save($category);
+
+            $this->givenTheCategoryTrees($children, $categoryCode);
+        }
+    }
+
+    /**
+     * @param array $products
+     */
+    private function givenTheProductsWithCategories(array $products): void
+    {
+        foreach ($products as $identifier => $categories) {
+            $product = $this->get('pim_catalog.builder.product')->createProduct($identifier);
+            $this->get('pim_catalog.updater.product')->update($product, [
+                'categories' => $categories
+            ]);
+            $constraintList = $this->get('pim_catalog.validator.product')->validate($product);
+            Assert::assertEquals(0, $constraintList->count());
+            $this->get('pim_catalog.saver.product')->save($product);
+        }
+
+        $this->get('akeneo_elasticsearch.client.product')->refreshIndex();
     }
 
     /**
